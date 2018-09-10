@@ -10,17 +10,23 @@ var exphbs = require("express-handlebars");
 var axios = require("axios");
 var cheerio = require("cheerio");
 
-// Require all models
-var db = require("./models/Article");
+// Require Article models
+var Article = require("./models/Article");
 
 // Connect to the Mongo DB
 // If deployed, use the deployed database. Otherwise use the local mongoHeadlines database
-var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
+var dbUrl = "mongodb://localhost/mongoHeadlines";
+
+if (process.env.MONGODB_URI) {
+	mongoose.connect(process.env.MONGODB_URI);
+}
+else {
+	mongoose.connect(dbUrl);
+};
 
 // Set mongoose to leverage built in JavaScript ES6 Promises
 // Connect to the Mongo DB
 mongoose.Promise = Promise;
-mongoose.connect(MONGODB_URI);
 
 var PORT = 3000;
 
@@ -39,8 +45,11 @@ app.use(express.static("public"));
 app.engine("handlebars", exphbs({defaultLayout: "main"}));
 app.set("view engine", "handlebars");
 
-
 // Routes
+app.get("/", function(req, res) {
+    res.render("index")
+})
+
 
 // A GET route for scraping the echoJS website
 app.get("/scrape", function(req, res) {
@@ -51,36 +60,26 @@ app.get("/scrape", function(req, res) {
         
         // Now, we grab every h2 within an article tag, and do the following:
         $("div.story-body").each(function(i, element) {
-            
-            // Save an empty result object
-            var result = {};
-            
+                      
             // Add the text and href of every link, and save them as properties of the result object
-            result.title = $(this).find("h2.headline").text().trim();
-            result.link = $(this).find("a").attr("href");
-            result.summary = $(this).find("p.summary").text().trim();
-            console.log(`Result ${result}`);
+            var article = {
+                title: $(this).find("h2.headline").text().trim(),
+                link: $(this).find("a").attr("href"),
+                summary: $(this).find("p.summary").text().trim(),
+            }
+           
+            console.log(`Result ${article}`);
             
-            // Create a new Article using the `result` object built from scraping
-            db.Article.create(result)
-            .then(function(dbArticle) {
-                // View the added result in the console
-                console.log(dbArticle);
-            })
-            .catch(function(err) {
-                // If an error occurred, send it to the client
-                return res.json(err);
-            });
-        });
-        
+      
         // If we were able to successfully scrape and save an Article, send a message to the client
-        res.send("Scrape Complete");
+        res.render('index', {article: article});
     });
 });
+})
 
 // route to to home page
 app.get("/articles", function(req, res) {
-    db.Article.find({}).then(function(dbArticle) {
+    Article.find({}).then(function(dbArticle) {
         if(data.length === 0) {
             res.render("Click the scrape button to get new articles.");
 		}
@@ -92,6 +91,38 @@ app.get("/articles", function(req, res) {
 
 // route for clearing articles from page
 app.get("/clear")
+
+//route for getting saved articles
+app.get("/savedarticles", function(req, res) {
+	Article.find({saved: true}, null, function(err, data) {
+		if(data.length === 0) {
+			res.render("You have not saved any articles yet.");
+		}
+		else {
+			res.render("saved", {saved: data});
+		}
+	});
+});
+
+
+
+
+
+app.get("/savedarticles/:id", function(req, res) {
+	Article.findById(req.params.id, function(err, data) {
+		if (data.saved == true) {
+			Article.findByIdAndUpdate(req.params.id, {$set: {issaved: false, status: "Save Article"}}, {new: true}, function(err, data) {
+				res.redirect("/");
+			});
+		}
+		else {
+			Article.findByIdAndUpdate(req.params.id, {$set: {issaved: true, status: "Saved"}}, {new: true}, function(err, data) {
+				res.redirect("/saved");
+			});
+		}
+	});
+});
+
 // Start the server
 app.listen(PORT, function() {
   console.log("App running on port " + PORT + "!");

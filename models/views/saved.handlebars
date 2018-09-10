@@ -1,0 +1,13 @@
+{{#each saved}}
+<div class="card" id={{this.id}}>
+    <div class="card-header">
+        <h5><a href="{{this.link}}" target="_blank">{{this.title}}</a></h5>
+    </div>
+    <div class="card-body">
+        <p class="card-text">
+            {{this.summary}}
+        </p>
+        <a href="#" class="btn btn-primary remove">Remove</a>
+    </div>
+</div> 
+{{/each}}

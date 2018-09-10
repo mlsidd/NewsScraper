@@ -1,10 +1,25 @@
 <div id="nav">
           <button type="button" class="btn btn-success" id="newArticles">Scrape New Articles</button>
           <button type="button" class="btn btn-danger" id="clearArticles">Clear Articles</button>
+          <a href="./saved.handlebars"><button type="button" class="btn btn-primary" id="savedArticles">Saved Articles</button></a>
       </div>
     <div id="wrapper">
       <h1>News Scraper</h1>
-      <div id="articles"></div>
+      <div class="articleHolder" id="articles">
+            {{#each articles}}
+                <div class='card' id={{this.id}}>
+                    <h5 class='card-header'> 
+                        <a href={{this.link}}>{{this.title}}</a>
+                    </h5>
+                    <div class='card-body'>
+                        <p class='card-text'>
+                            {{this.summary}}
+                            <a href='#'><button type="button" class='btn btn-primary saveArticle'>Save Article</button></a>
+                        </p>
+                    </div>
+                </div>  
+            {{/each}}          
+        </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="/public/app.js"></script>
